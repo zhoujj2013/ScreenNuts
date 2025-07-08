@@ -9,6 +9,7 @@ parse = argparse.ArgumentParser()
 parse.add_argument('-fq',type=str,help='fastq file')
 parse.add_argument('-b',type=str,help='barcode list,csv file,example /mnt/dfc_data2/project/linyusen/project/81_MORF/data/barcode.csv')
 parse.add_argument('-o',type=str,help='output dir')
+parse.add_argument('-thread',type=str,help='number of threads to precess')
 parse.add_argument('-key',type=str,default='GAAAGGACGA',help='a string before barcode,example GAAAGGACGA')
 parse.add_argument('-KEY_REGION_START',type=int,default=25)
 parse.add_argument('-KEY_REGION_END',type=int,default=50)
@@ -22,8 +23,6 @@ KEY = args.key
 KEY_REGION_START = args.KEY_REGION_START
 KEY_REGION_END = args.KEY_REGION_END
 BARCODE_LENGTH = args.BARCODE_LENGTH
-
-
 
 
 # KEY_REGION_START = 25  # start index of key region
@@ -77,7 +76,7 @@ from Bio import SeqIO
 from multiprocessing import Pool, Manager, cpu_count
 from itertools import islice
 
-num_processes = 32
+num_processes = args.thread
 chunk_size = 10000  # 每个进程处理1万条 read
 
 results = []
