@@ -5,51 +5,87 @@ import argparse
 
 parser = argparse.ArgumentParser()
 # 添加参数
-parser.add_argument('-input_dir1', type=str, required=True,
-                    help='Directory containing barcode counts for sample1')
-parser.add_argument('-input_dir2', type=str, required=True,
-                    help='Directory containing barcode counts for sample2')
-parser.add_argument('-o', type=str, required=True,
-                    help='Output directory to save plots and results')
-parser.add_argument('-sample1', type=str, default='sample1',
-                    help='Name of the first sample (for labeling in plots)')
-parser.add_argument('-sample2', type=str, default='sample2',
-                    help='Name of the second sample (for labeling in plots)')
+parser.add_argument('-input', type=str, required=True,help='sample file')
+parser.add_argument('-o', type=str, required=True,help='Output directory to save plots and results')
+
 args = parser.parse_args()
 
-input_dir1 = args.input_dir1
-input_dir2 = args.input_dir2
+input = args.input
 output_dir = args.o
-sample1 = args.sample1
-sample2 = args.sample2
 
-
-# input_dir1 = '/mnt/dfc_data2/project/linyusen/project/81_MORF/data/SRR22409540'
-# input_dir2 = '/mnt/dfc_data2/project/linyusen/project/81_MORF/data/SRR22409541'
+# input = '/mnt/dfc_data2/project/linyusen/project/81_MORF/samples.lst'
 # output_dir = '/mnt/dfc_data2/project/linyusen/project/81_MORF/data/compare'
-# sample1 = 'SRR22409540'
-# sample2 = 'SRR22409541'
 
 
-TF_Count_file1 = os.path.join(input_dir1,'TF_Count.csv')
-TF_Count_file2 = os.path.join(input_dir2,'TF_Count.csv')
+f = open(input)
+input_dir1_list = []
+input_dir2_list = []
+for i in f.readlines():
+    i = i.strip('\n').split(' ')
+    if i[0] == '1':
+        input_dir1_list.append(i[-1])
+        sample1 = i[1]
+    if i[0] == '2':
+        input_dir2_list.append(i[-1])
+        sample2 = i[1]
 
-os.makedirs(output_dir,exist_ok=True)
+
+TF_Count_file1_list = []
+TF_Count_file2_list = []
+
+for path in input_dir1_list:
+    TF_Count_file1_list.append(os.path.join(path, 'TF_Count.csv'))
+for path in input_dir2_list:
+    TF_Count_file2_list.append(os.path.join(path, 'TF_Count.csv'))
+#%%
+import csv
+import numpy as np
+
+# Function to read data from a CSV file and return a dictionary {barcode: cpm}
 def read_data(file_path):
     f = open(file_path)
     r = csv.reader(f)
-    r.__next__()
-    r.__next__()
+    r.__next__()  # Skip the first header line
+    r.__next__()  # Skip the second header line
     data = {}
     for i in r:
-        barcode,count,cpm = i
-        count = int(count)
-        cpm = float(cpm)
-        data[barcode] = cpm
+        barcode, count, cpm = i
+        count = int(count)        # Convert count to integer (though unused later)
+        cpm = float(cpm)          # Convert cpm to float
+        data[barcode] = cpm       # Store barcode → cpm mapping
     return data
-TF_Count1 = read_data(TF_Count_file1)
-TF_Count2 = read_data(TF_Count_file2)
 
+# Lists to store data dictionaries from multiple files
+TF_Count1_list = []
+TF_Count2_list = []
+
+# Read data from all files in TF_Count_file1_list and TF_Count_file2_list
+for file in TF_Count_file1_list:
+    TF_Count1_list.append(read_data(file))
+for file in TF_Count_file2_list:
+    TF_Count2_list.append(read_data(file))
+
+# Merge data from multiple files into one dictionary, grouped by barcode
+# Each barcode maps to a list of CPMs (from different replicates/files)
+TF_Count1 = {}
+for temp in TF_Count1_list:
+    for i in temp:
+        if i not in TF_Count1:
+            TF_Count1[i] = []
+        TF_Count1[i].append(temp[i])
+
+TF_Count2 = {}
+for temp in TF_Count2_list:
+    for i in temp:
+        if i not in TF_Count2:
+            TF_Count2[i] = []
+        TF_Count2[i].append(temp[i])
+
+# For each barcode, take the average CPM across all files
+for i in TF_Count1:
+    TF_Count1[i] = np.mean(TF_Count1[i])
+for i in TF_Count2:
+    TF_Count2[i] = np.mean(TF_Count2[i])
 #%%
 import matplotlib.pyplot as plt
 from scipy.stats import pearsonr
@@ -177,7 +213,6 @@ plt.ylabel('Number of TFs')
 plt.xticks(rotation=15)
 plt.tight_layout()
 plt.savefig(os.path.join(output_dir,'Dropout_TF_Count.png'))
-
 
 f = open(os.path.join(output_dir,'compare.info.csv'),'w')
 w = csv.writer(f)
