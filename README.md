@@ -47,8 +47,11 @@ python tf_find_multi.py \
 After completion, the output directory will contain:
 
 TF_Count.csv：A table containing barcode counts and CPM (counts per million) for each TF
+
 TF_Count_Distribution.png：	A plot showing the overall barcode count distribution
+
 Log-Scale_Abundance_Histogram.png：A histogram of barcode abundances on a log scale
+
 ---
 
 
@@ -76,9 +79,13 @@ python tf_find_compare.py \
 After completion, the output directory will contain:
 
 barcode_scatter_plot.png：A scatter plot comparing barcode CPM values between the two groups
+
 barcode_heatmap.png：A heatmap showing clustering of TFs based on barcode abundance
+
 Rank-Rank_Plot.png：A rank-rank plot visualizing the TFs overall consistency and shifts in ranks
+
 compare.info.csv: A summary table including mean CPM, log2 fold changes
+
 ---
 
 # 📝 Please Cite
