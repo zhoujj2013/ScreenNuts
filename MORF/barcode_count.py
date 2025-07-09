@@ -7,8 +7,8 @@ import argparse
 from itertools import islice
 parse = argparse.ArgumentParser()
 parse.add_argument('-fq',type=str,help='fastq file',required=True)
-parse.add_argument('-b',type=str,help='barcode list,csv file,example /mnt/dfc_data2/project/linyusen/project/81_MORF/data/barcode.csv',required=True)
-parse.add_argument('-o',type=str,help='output dir',required=True)
+parse.add_argument('-b',type=str,help='barcode list,csv file,example /mnt/dfc_data2/project/linyusen/project/81_MORF/barcode_info.csv',required=True)
+parse.add_argument('-prefix',type=str,help='output name prefix',required=True)
 parse.add_argument('-thread',type=int,help='number of threads to precess',required=True)
 parse.add_argument('-key',type=str,default='GAAAGGACGA',help='a string before barcode,example GAAAGGACGA')
 parse.add_argument('-KEY_REGION_START',type=int,default=25)
@@ -18,12 +18,14 @@ args = parse.parse_args()
 
 fastq_file = args.fq
 input_file = args.b
-output_dir = args.o
+prefix = args.prefix
 KEY = args.key
 KEY_REGION_START = args.KEY_REGION_START
 KEY_REGION_END = args.KEY_REGION_END
 BARCODE_LENGTH = args.BARCODE_LENGTH
 thread = args.thread
+
+
 
 
 # KEY_REGION_START = 25  # start index of key region
@@ -38,6 +40,8 @@ thread = args.thread
 
 
 #%%
+cwd = os.getcwd()
+output_dir = os.path.join(cwd,prefix)
 os.makedirs(output_dir,exist_ok=True)
 with open(input_file, 'r') as infile:
     barcode_dict = {}
@@ -92,8 +96,9 @@ from multiprocessing import Pool, Manager, cpu_count
 from itertools import islice
 
 num_processes = thread
-chunk_size = 10000  # 每个进程处理1万条 read
+chunk_size = 1000  # 每个进程处理1万条 read
 
+print('Precessing ... ')
 results = []
 with Pool(processes=num_processes) as pool:
     with open(fastq_file, "r") as handle:
@@ -110,7 +115,7 @@ from tqdm import tqdm
 final_dict = Counter()
 total_stats = {'perfect': 0, 'nonperfect': 0, 'notfound': 0}
 
-for r in tqdm(results):
+for r in results:
     partial_dict, stats = r.get()
     final_dict.update(partial_dict)
     for k in total_stats:
@@ -169,5 +174,6 @@ with open(os.path.join(output_dir,'TF_Count.csv'), 'w') as csvfile:
 
 with open(os.path.join(output_dir,'TF_info.csv'), 'w') as csvfile:
     mywriter = csv.writer(csvfile, delimiter=',')
-    mywriter.writerow(['total', 'barcode count','nonperfect','notfound','skewness'])
-    mywriter.writerow([total_count, total_stats['perfect'],total_stats['nonperfect'],total_stats['notfound'],skewness])
+    mywriter.writerow(['sample','total', 'barcode count','nonperfect','notfound','skewness'])
+    mywriter.writerow([prefix,total_count, total_stats['perfect'],total_stats['nonperfect'],total_stats['notfound'],skewness])
+print('Done!')
