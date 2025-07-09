@@ -1,6 +1,4 @@
-
 # 🧬 Abstract
-Screening for Functional Elements in Biology: Like Finding a Nut.
 
 ---
 # 💻 Installation
@@ -75,6 +73,9 @@ python tf_find_compare.py \
   -i samples.lst \
   -o ./xxxx \
 ```
+> ⚠️ Each path in samples.lst corresponds to the output directory of tf_find_multi.py
+
+
 ### 4.Check the Output
 After completion, the output directory will contain:
 
