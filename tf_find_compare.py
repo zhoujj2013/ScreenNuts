@@ -5,12 +5,12 @@ import argparse
 
 parser = argparse.ArgumentParser()
 # 添加参数
-parser.add_argument('-input', type=str, required=True,help='sample file')
+parser.add_argument('-i', type=str, required=True,help='sample file',)
 parser.add_argument('-o', type=str, required=True,help='Output directory to save plots and results')
 
 args = parser.parse_args()
 
-input = args.input
+input = args.i
 output_dir = args.o
 
 # input = '/mnt/dfc_data2/project/linyusen/project/81_MORF/samples.lst'

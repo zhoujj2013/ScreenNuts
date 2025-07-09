@@ -6,10 +6,10 @@ from collections import OrderedDict
 import argparse
 from itertools import islice
 parse = argparse.ArgumentParser()
-parse.add_argument('-fq',type=str,help='fastq file')
-parse.add_argument('-b',type=str,help='barcode list,csv file,example /mnt/dfc_data2/project/linyusen/project/81_MORF/data/barcode.csv')
-parse.add_argument('-o',type=str,help='output dir')
-parse.add_argument('-thread',type=str,help='number of threads to precess')
+parse.add_argument('-fq',type=str,help='fastq file',required=True)
+parse.add_argument('-b',type=str,help='barcode list,csv file,example /mnt/dfc_data2/project/linyusen/project/81_MORF/data/barcode.csv',required=True)
+parse.add_argument('-o',type=str,help='output dir',required=True)
+parse.add_argument('-thread',type=int,help='number of threads to precess',required=True)
 parse.add_argument('-key',type=str,default='GAAAGGACGA',help='a string before barcode,example GAAAGGACGA')
 parse.add_argument('-KEY_REGION_START',type=int,default=25)
 parse.add_argument('-KEY_REGION_END',type=int,default=50)
