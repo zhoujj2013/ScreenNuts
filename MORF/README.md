@@ -1,8 +1,7 @@
 # Introduction
 
+The pipeline designed for processing MORF library screening dataset using bulk RNA-seq and scRNA-seq.
 
-
----
 # Requirements
 
 Requires Python ≥ 3.8 and the following libraries:
@@ -11,14 +10,14 @@ Requires Python ≥ 3.8 and the following libraries:
 pip install numpy scipy matplotlib pandas seaborn biopython
 ```
 
----
-# ⚙️ Functional
+# Usage
 
-## 📚 TF barcode counting
-### 1.Introduction
-This section is designed to evaluate the transcription factor diversity of a given MORF library.
+## TF barcode counting
 
-### 2.Input Requirements
+Get the barcode abundance profiles.
+
+### 1. Input
+
 The script accepts the following required command-line arguments:
 
 | Argument            | Type     | Description                                                                                                  | Default    |
@@ -32,7 +31,18 @@ The script accepts the following required command-line arguments:
 | `-KEY_REGION_END`   | `int`    | End position (0-based, exclusive) of the region where the key sequence is expected                           | 50         |
 | `-BARCODE_LENGTH`   | `int`    | Length of the barcode sequence to extract following the key                                                  | 24         |
 
-### 3.Quick Start
+### 2. Output
+
+After completion, the output directory will contain:
+
+TF_Count.csv：A table containing barcode counts and CPM (counts per million) for each TF
+
+TF_Count_Distribution.png：	A plot showing the overall barcode count distribution
+
+Log-Scale_Abundance_Histogram.png：A histogram of barcode abundances on a log scale
+
+### 3. Example
+
 Follow these steps to quickly analyse library diversity:
 ```angular2html
 python tf_find_multi.py \
@@ -45,42 +55,23 @@ python tf_find_multi.py \
   -KEY_REGION_END 50 \
   -BARCODE_LENGTH 24 \
 ```
-### 4.Check the Output
-After completion, the output directory will contain:
 
-TF_Count.csv：A table containing barcode counts and CPM (counts per million) for each TF
+## Comparision analysis
 
-TF_Count_Distribution.png：	A plot showing the overall barcode count distribution
+This script is designed for comparing two groups of MORF libraries based on their barcode abundance profiles.
 
-Log-Scale_Abundance_Histogram.png：A histogram of barcode abundances on a log scale
+### 1. Input
 
----
-
-
-## 📚 tf find compare
-### 1.Introduction
-This section is designed to compare two groups of MORF libraries based on their barcode abundance profiles.
-
-### 2.Input Requirements
 The script accepts the following required command-line arguments:
 
 | Argument            | Type     | Description                      | Default    |
 |---------------------|----------|----------------------------------|------------|
 | `-i`                | `str`    | sample file                      |            |
 | `-o`                | `str`    | Output directory to save results |            |
+| `-b`                | `str`    | tf informa                       |            |
 
+### 2. Output
 
-### 3.Quick Start
-Follow these steps to quickly analyse library diversity:
-```angular2html
-python tf_find_compare.py \
-  -i samples.lst \
-  -o ./xxxx \
-```
-> ⚠️ Each path in samples.lst corresponds to the output directory of tf_find_multi.py
-
-
-### 4.Check the Output
 After completion, the output directory will contain:
 
 barcode_scatter_plot.png：A scatter plot comparing barcode CPM values between the two groups
@@ -91,25 +82,29 @@ Rank-Rank_Plot.png：A rank-rank plot visualizing the TFs overall consistency an
 
 compare.info.csv: A summary table including mean CPM, log2 fold changes
 
----
+### 3. Example
 
-# 📝 Please Cite
+Follow these steps to quickly analyse library diversity:
+```angular2html
+python tf_find_compare.py \
+  -i samples.lst \
+  -b xxx.txt \
+  -o ./xxxx \
+```
+> ⚠️ Each path in samples.lst corresponds to the output directory of tf_find_multi.py
+
+
+# Please Cite
 
 If you use this script or parts of it in your research or project, please cite the repository or acknowledge the author appropriately. A suggested citation format:
 
----
 
-# 👨‍💻 Maintainer
+# Contributors
 
-
----
-
-# 🤝 Contributors
+Jiajian ZHOU, Yusen Lin, Tingting Deng and Meting.
 
 
----
-
-# 📄 License
+# License
 
 This project is licensed under the [MIT License](LICENSE.txt).  
 You are free to use, modify, and distribute it with attribution.
