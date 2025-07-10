@@ -1,10 +1,13 @@
 import os
-
-from Bio import SeqIO
-import csv
-from collections import OrderedDict
 import argparse
+import csv
+from Bio import SeqIO
+from multiprocessing import Pool
 from itertools import islice
+import numpy as np
+from collections import Counter
+import matplotlib.pyplot as plt
+
 parse = argparse.ArgumentParser()
 parse.add_argument('-fq',type=str,help='fastq file',required=True)
 parse.add_argument('-b',type=str,help='barcode list,csv file,example /mnt/dfc_data2/project/linyusen/project/81_MORF/barcode_info.csv',required=True)
@@ -92,10 +95,7 @@ def chunk_iterable(iterable, chunk_size):
             break
         yield chunk
 
-import csv
-from Bio import SeqIO
-from multiprocessing import Pool, Manager, cpu_count
-from itertools import islice
+
 
 num_processes = thread
 chunk_size = 1000  # 每个进程处理1万条 read
@@ -110,10 +110,9 @@ with Pool(processes=num_processes) as pool:
     pool.close()
     pool.join()
 #%%
-import numpy as np
+
 # 合并所有结果
-from collections import Counter
-from tqdm import tqdm
+
 final_dict = Counter()
 total_stats = {'perfect': 0, 'nonperfect': 0, 'notfound': 0}
 
@@ -128,7 +127,7 @@ for k in barcode_dict:
     barcode_dict[k] = final_dict.get(k, 0)
 total_count = np.sum(list(total_stats.values()))
 #%%
-import matplotlib.pyplot as plt
+
 barcode_count_list = []
 for i in barcode_dict:
     barcode_count_list.append(barcode_dict[i]+1)
