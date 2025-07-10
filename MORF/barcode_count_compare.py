@@ -17,7 +17,7 @@ args = parser.parse_args()
 
 input = args.i
 output_dir = args.o
-
+os.makedirs(output_dir,exist_ok=True)
 # input = '/mnt/dfc_data2/project/linyusen/project/81_MORF/samples.lst'
 # output_dir = '/mnt/dfc_data2/project/linyusen/project/81_MORF/data/compare'
 
