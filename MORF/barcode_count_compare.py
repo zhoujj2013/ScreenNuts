@@ -21,7 +21,7 @@ os.makedirs(output_dir,exist_ok=True)
 # input = '/mnt/dfc_data2/project/linyusen/project/81_MORF/samples.lst'
 # output_dir = '/mnt/dfc_data2/project/linyusen/project/81_MORF/data/compare'
 
-
+print('Precessing ... ')
 f = open(input)
 input_dir1_list = []
 input_dir2_list = []
@@ -216,3 +216,4 @@ w.writerow(['barcode',f'{sample1}_count',f'{sample1}_count',f'log2FC({sample1}/{
 for k in common_keys:
     w.writerow([k,TF_Count1[k],TF_Count2[k],log2fc[k],rank_dict[k][0],rank_dict[k][1]])
 f.close()
+print('Done!')
