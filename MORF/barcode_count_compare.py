@@ -39,21 +39,20 @@ TF_Count_file1_list = []
 TF_Count_file2_list = []
 
 for path in input_dir1_list:
-    TF_Count_file1_list.append(os.path.join(path, 'TF_Count.csv'))
+    TF_Count_file1_list.append(os.path.join(path, 'TF_Count.txt'))
 for path in input_dir2_list:
-    TF_Count_file2_list.append(os.path.join(path, 'TF_Count.csv'))
+    TF_Count_file2_list.append(os.path.join(path, 'TF_Count.txt'))
 #%%
 
 # Function to read data from a CSV file and return a dictionary {barcode: cpm}
 def read_data(file_path):
     f = open(file_path)
-    r = csv.reader(f)
+    r = csv.reader(f,delimiter='\t')
     r.__next__()  # Skip the first header line
     r.__next__()  # Skip the second header line
     data = {}
     for i in r:
-        barcode, count, cpm = i
-        count = int(count)        # Convert count to integer (though unused later)
+        barcode,tf,gene,id,count, cpm = i
         cpm = float(cpm)          # Convert cpm to float
         data[barcode] = cpm       # Store barcode → cpm mapping
     return data
@@ -213,7 +212,6 @@ plt.savefig(os.path.join(output_dir,'Dropout_TF_Count.png'))
 
 f = open(os.path.join(output_dir,'compare.info.csv'),'w')
 w = csv.writer(f)
-w.writerow([f'# Dropout TF Counts:{dropout_counts}'])
 w.writerow(['barcode',f'{sample1}_count',f'{sample1}_count',f'log2FC({sample1}/{sample2})',f'{sample1}_rank',f'{sample1}_rank'])
 for k in common_keys:
     w.writerow([k,TF_Count1[k],TF_Count2[k],log2fc[k],rank_dict[k][0],rank_dict[k][1]])
