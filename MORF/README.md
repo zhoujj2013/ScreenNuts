@@ -5,7 +5,7 @@
 
 Requires Python ≥ 3.8 and the following libraries:
 ```bash
-pip install numpy scipy matplotlib pandas seaborn pybio
+pip install numpy scipy matplotlib pandas seaborn biopython
 ```
 ---
 # ⚙️ Functional
