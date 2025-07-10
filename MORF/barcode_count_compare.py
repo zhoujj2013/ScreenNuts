@@ -1,184 +1,220 @@
+#%%
 import os
-
-from Bio import SeqIO
-import csv
-from collections import OrderedDict
 import argparse
-from itertools import islice
-parse = argparse.ArgumentParser()
-parse.add_argument('-fq',type=str,help='fastq file',required=True)
-parse.add_argument('-b',type=str,help='barcode list,csv file,example /mnt/dfc_data2/project/linyusen/project/81_MORF/barcode_info.csv',required=True)
-parse.add_argument('-prefix',type=str,help='output name prefix',required=True)
-parse.add_argument('-thread',type=int,help='number of threads to precess',required=True)
-parse.add_argument('-key',type=str,default='GAAAGGACGA',help='a string before barcode,example GAAAGGACGA')
-parse.add_argument('-KEY_REGION_START',type=int,default=25)
-parse.add_argument('-KEY_REGION_END',type=int,default=50)
-parse.add_argument('-BARCODE_LENGTH',type=int,default=24)
-args = parse.parse_args()
-
-fastq_file = args.fq
-input_file = args.b
-prefix = args.prefix
-KEY = args.key
-KEY_REGION_START = args.KEY_REGION_START
-KEY_REGION_END = args.KEY_REGION_END
-BARCODE_LENGTH = args.BARCODE_LENGTH
-thread = args.thread
-
-
-
-
-# KEY_REGION_START = 25  # start index of key region
-# KEY_REGION_END = 50  # end index of key region
-# BARCODE_LENGTH = 24
-# KEY = "GAAAGGACGA"  # identifies sequence before barcode to determine barcode position
-# input_file = '/mnt/dfc_data2/project/linyusen/project/81_MORF/barcode_info.csv'
-# fastq_file = '/mnt/dfc_data2/project/linyusen/database/81_MORF/test_data/SRR22409537_1.fastq'
-# output_dir = '/mnt/dfc_data2/project/linyusen/project/81_MORF/data/SRR22409537'
-# thread = 32
-
-
-
-#%%
-cwd = os.getcwd()
-output_dir = os.path.join(cwd,prefix)
-os.makedirs(output_dir,exist_ok=True)
-with open(input_file, 'r') as infile:
-    barcode_dict = {}
-    reader = csv.reader(infile)
-    reader.__next__()
-    for rows in reader:
-        barcode_dict[rows[3]] = 0
-
-barcode_tf_dict = {}
-with open(input_file, 'r') as infile:
-    reader = csv.reader(infile)
-    reader.__next__()
-    for rows in reader:
-        barcode_tf_dict[rows[3]] = {}
-        barcode_tf_dict[rows[3]]['Name'] = rows[0]
-        barcode_tf_dict[rows[3]]['RefSeqGeneName'] = rows[1]
-        barcode_tf_dict[rows[3]]['RefSeqandGencodeID'] = rows[2]
-        barcode_tf_dict[rows[3]]['BarcodeSequence'] = rows[3]
-#%%
-
-def process_chunk(records_chunk):
-    local_dict = {}
-    local_stats = {'perfect': 0, 'nonperfect': 0, 'notfound': 0}
-
-    for record in records_chunk:
-        read_sequence = str(record.seq).upper()
-        key_region = read_sequence[KEY_REGION_START:KEY_REGION_END]
-        key_index = key_region.find(KEY)
-        if key_index >= 0:
-            start_index = key_index + KEY_REGION_START + len(KEY)
-            barcode = read_sequence[start_index:(start_index + BARCODE_LENGTH)]
-            if barcode in barcode_dict:
-                local_dict[barcode] = local_dict.get(barcode, 0) + 1
-                local_stats['perfect'] += 1
-            else:
-                local_stats['nonperfect'] += 1
-        else:
-            local_stats['notfound'] += 1
-
-    return local_dict, local_stats
-
-def chunk_iterable(iterable, chunk_size):
-    """Yield chunks of `chunk_size` from iterable"""
-    iterator = iter(iterable)
-    while True:
-        chunk = list(islice(iterator, chunk_size))
-        if not chunk:
-            break
-        yield chunk
-
 import csv
-from Bio import SeqIO
-from multiprocessing import Pool, Manager, cpu_count
-from itertools import islice
-
-num_processes = thread
-chunk_size = 1000  # 每个进程处理1万条 read
-
-print('Precessing ... ')
-results = []
-with Pool(processes=num_processes) as pool:
-    with open(fastq_file, "r") as handle:
-        reader = SeqIO.parse(handle, "fastq")
-        for chunk in chunk_iterable(reader, chunk_size):
-            results.append(pool.apply_async(process_chunk, args=(chunk,)))
-    pool.close()
-    pool.join()
-#%%
+from scipy.stats import pearsonr
 import numpy as np
-# 合并所有结果
-from collections import Counter
-from tqdm import tqdm
-final_dict = Counter()
-total_stats = {'perfect': 0, 'nonperfect': 0, 'notfound': 0}
-
-for r in results:
-    partial_dict, stats = r.get()
-    final_dict.update(partial_dict)
-    for k in total_stats:
-        total_stats[k] += stats[k]
-#%%
-# 更新 barcode_dict
-for k in barcode_dict:
-    barcode_dict[k] = final_dict.get(k, 0)
-total_count = np.sum(list(total_stats.values()))
-#%%
+import pandas as pd
 import matplotlib.pyplot as plt
-barcode_count_list = []
-for i in barcode_dict:
-    barcode_count_list.append(barcode_dict[i]+1)
-barcode_count_list = np.array(barcode_count_list)
-log_abundance = np.log10(barcode_count_list)
-plt.hist(log_abundance, bins=20, color='skyblue', edgecolor='black')
-plt.xlabel("log10(Abundance)")
-plt.ylabel("Number of Barcodes")
-plt.title("Log-Scale Abundance Histogram")
-plt.savefig(os.path.join(output_dir,'Log-Scale_Abundance_Histogram.png'))
+import seaborn as sns
+
+parser = argparse.ArgumentParser()
+# 添加参数
+parser.add_argument('-i', type=str, required=True,help='sample file',)
+parser.add_argument('-o', type=str, required=True,help='Output directory to save plots and results')
+
+args = parser.parse_args()
+
+input = args.i
+output_dir = args.o
+
+# input = '/mnt/dfc_data2/project/linyusen/project/81_MORF/samples.lst'
+# output_dir = '/mnt/dfc_data2/project/linyusen/project/81_MORF/data/compare'
+
+
+f = open(input)
+input_dir1_list = []
+input_dir2_list = []
+for i in f.readlines():
+    i = i.strip('\n').split(' ')
+    if i[0] == '1':
+        input_dir1_list.append(i[-1])
+        sample1 = i[1]
+    if i[0] == '2':
+        input_dir2_list.append(i[-1])
+        sample2 = i[1]
+
+
+TF_Count_file1_list = []
+TF_Count_file2_list = []
+
+for path in input_dir1_list:
+    TF_Count_file1_list.append(os.path.join(path, 'TF_Count.csv'))
+for path in input_dir2_list:
+    TF_Count_file2_list.append(os.path.join(path, 'TF_Count.csv'))
 #%%
-sorted_data = dict(sorted(barcode_dict.items(), key=lambda item: item[1], reverse=True))
-y = list(sorted_data.values())
-x = range(len(y))
-max_idx = y.index(max(y))
-min_idx = y.index(min(y))
-max_kmer = list(sorted_data.keys())[max_idx]
-min_kmer = list(sorted_data.keys())[min_idx]
-plt.figure(figsize=(10, 6))
-plt.plot(x, y, label='K-mer Count')
-plt.fill_between(x, y, alpha=0.3)
-plt.xlabel("Ranked K-mers")
-plt.ylabel("Count")
-plt.title(f"TF Count Distribution")
-plt.xticks([])
-plt.text(max_idx, y[max_idx], f"Max: {max_kmer} ({y[max_idx]})",
-         ha='left', va='bottom', fontsize=9, color='red')
-plt.text(min_idx, y[min_idx], f"Min: {min_kmer} ({y[min_idx]})",
-         ha='right', va='top', fontsize=9, color='blue')
+
+# Function to read data from a CSV file and return a dictionary {barcode: cpm}
+def read_data(file_path):
+    f = open(file_path)
+    r = csv.reader(f)
+    r.__next__()  # Skip the first header line
+    r.__next__()  # Skip the second header line
+    data = {}
+    for i in r:
+        barcode, count, cpm = i
+        count = int(count)        # Convert count to integer (though unused later)
+        cpm = float(cpm)          # Convert cpm to float
+        data[barcode] = cpm       # Store barcode → cpm mapping
+    return data
+
+# Lists to store data dictionaries from multiple files
+TF_Count1_list = []
+TF_Count2_list = []
+
+# Read data from all files in TF_Count_file1_list and TF_Count_file2_list
+for file in TF_Count_file1_list:
+    TF_Count1_list.append(read_data(file))
+for file in TF_Count_file2_list:
+    TF_Count2_list.append(read_data(file))
+
+# Merge data from multiple files into one dictionary, grouped by barcode
+# Each barcode maps to a list of CPMs (from different replicates/files)
+TF_Count1 = {}
+for temp in TF_Count1_list:
+    for i in temp:
+        if i not in TF_Count1:
+            TF_Count1[i] = []
+        TF_Count1[i].append(temp[i])
+
+TF_Count2 = {}
+for temp in TF_Count2_list:
+    for i in temp:
+        if i not in TF_Count2:
+            TF_Count2[i] = []
+        TF_Count2[i].append(temp[i])
+
+# For each barcode, take the average CPM across all files
+for i in TF_Count1:
+    TF_Count1[i] = np.mean(TF_Count1[i])
+for i in TF_Count2:
+    TF_Count2[i] = np.mean(TF_Count2[i])
+#%%
+
+
+# 将 TF 的顺序固定好（交集）
+common_keys = set(TF_Count1.keys()) & set(TF_Count2.keys())
+x = [TF_Count1[k] for k in common_keys]
+y = [TF_Count2[k] for k in common_keys]
+
+# 计算皮尔森相关系数
+r, p_value = pearsonr(x, y)
+
+# 画散点图
+plt.figure(figsize=(7, 7))
+plt.scatter(x, y, alpha=0.6, color='steelblue', edgecolor='k')
+plt.xlabel(f"TF CPM - {sample1}")
+plt.ylabel(f"TF CPM - {sample2}")
+plt.title(f"Pearson r = {r:.3f}, p = {p_value:.1e}")
+
+# 添加对角线参考线（可选）
+max_val = max(max(x), max(y))
+plt.plot([0, max_val], [0, max_val], 'r--', lw=1)
+
+plt.grid(True)
 plt.tight_layout()
-plt.savefig(os.path.join(output_dir,'TF_Count_Distribution.png'))
+plt.savefig(os.path.join(output_dir,'barcode_scatter_plot.png'))
+
 #%%
-barcode_count_list = []
-for i in barcode_dict:
-    barcode_count_list.append(barcode_dict[i])
-skewness = np.percentile(barcode_count_list, 90) / np.percentile(barcode_count_list, 10)
+
+
+# 伪计数，避免除以 0
+log2fc = {
+    k: np.log2((TF_Count1[k] + 0.1) / (TF_Count2[k] + 0.1))
+    for k in set(TF_Count1) & set(TF_Count2)
+}
+
+# 排序（从大到小）
+log2fc_sorted = dict(sorted(log2fc.items(), key=lambda x: x[1], reverse=True))
+
+# 转换成 DataFrame（只有一列）
+df = pd.DataFrame.from_dict(log2fc_sorted, orient='index', columns=['log2FC'])
+
+vmax = -df['log2FC'].min()
+vmin = df['log2FC'].min()
+
+# 热图
+fig, ax = plt.subplots(figsize=(4,8))  # 控制宽度和高度
+
+fig.subplots_adjust(left=0.4, right=0.6)
+sns.heatmap(
+    df,
+    cmap="coolwarm",
+    cbar=True,
+    yticklabels=False,
+    ax=ax,
+    vmax=vmax,
+    vmin=vmin
+)
+
+# 美化
+ax.set_title('Heatmap', fontsize=14)
+ax.set_xticklabels([f'log2FC({sample1}/{sample2})'], rotation=0)
+plt.tight_layout()
+plt.savefig(os.path.join(output_dir,'barcode_heatmap.png'))
+
+
+
 #%%
-with open(os.path.join(output_dir,'TF_Count.txt'), 'w') as csvfile:
-    mywriter = csv.writer(csvfile, delimiter='\t')
-    mywriter.writerow(['Barcode','Name','RefSeqGeneName','RefSeqandGencodeID',f'{prefix}_count',f'{prefix}_CPM'])
-    for barcode in barcode_dict:
-        count = sorted_data[barcode]
-        mywriter.writerow([barcode,barcode_tf_dict[barcode]['Name'],barcode_tf_dict[barcode]['RefSeqGeneName'],barcode_tf_dict[barcode]['RefSeqandGencodeID'],count,count/total_count*1000000])
 
 
-with open(os.path.join(output_dir,'readcount_stat_header.txt'), 'w') as csvfile:
-    mywriter = csv.writer(csvfile, delimiter='\t')
-    mywriter.writerow(['sample','total', 'barcode count','nonperfect','notfound','skewness'])
+# 假设有两个条件的计数字典
+# TF_CountA, TF_CountB
 
-with open(os.path.join(output_dir,'readcount_stat.txt'), 'w') as csvfile:
-    mywriter = csv.writer(csvfile, delimiter='\t')
-    mywriter.writerow([prefix,total_count, total_stats['perfect'],total_stats['nonperfect'],total_stats['notfound'],skewness])
-print('Done!')
+# 统一 TF 集合
+common_tfs = set(TF_Count1) & set(TF_Count2)
+
+# 构建 DataFrame
+df = pd.DataFrame({
+    sample1: [TF_Count1[tf] for tf in common_tfs],
+    sample2: [TF_Count2[tf] for tf in common_tfs],
+}, index=list(common_tfs))
+
+# 排名（rank 越小表示丰度越高）
+df[f'{sample1}_rank'] = df[sample1].rank(ascending=False)
+df[f'{sample2}_rank'] = df[sample2].rank(ascending=False)
+
+# Rank-Rank plot
+plt.figure(figsize=(6, 6))
+sns.scatterplot(x=sample1, y=sample2, data=df, s=10)
+plt.title('Rank-Rank Plot')
+plt.xlabel(f'Condition {sample1} Rank')
+plt.ylabel(f'Condition {sample2} Rank')
+plt.plot([0, len(df)], [0, len(df)], color='gray', linestyle='--')  # y=x 参考线
+plt.tight_layout()
+plt.savefig(os.path.join(output_dir,'Rank-Rank_Plot.png'))
+
+#%%
+# 构建字典：TF -> (rank1, rank2)
+rank_dict = {
+    tf: (df.loc[tf, f'{sample1}_rank'], df.loc[tf, f'{sample2}_rank'])
+    for tf in df.index
+}
+
+
+#%%
+
+
+# Dropout 判断逻辑
+dropout_tfs_1 = [k for k in TF_Count1 if TF_Count1[k] == 0 and TF_Count2.get(k, 0) > 0]
+dropout_tfs_2 = [k for k in TF_Count2 if TF_Count2[k] == 0 and TF_Count1.get(k, 0) > 0]
+
+dropout_counts = [len(dropout_tfs_1), len(dropout_tfs_2)]
+labels = [f'Dropout in {sample1}', f'Dropout in {sample2}']
+
+# 绘图
+plt.figure(figsize=(5, 4))
+plt.bar(labels, dropout_counts, color=['salmon', 'skyblue'], width=0.5)
+plt.title('Dropout TF Counts Between Samples')
+plt.ylabel('Number of TFs')
+plt.xticks(rotation=15)
+plt.tight_layout()
+plt.savefig(os.path.join(output_dir,'Dropout_TF_Count.png'))
+
+f = open(os.path.join(output_dir,'compare.info.csv'),'w')
+w = csv.writer(f)
+w.writerow([f'# Dropout TF Counts:{dropout_counts}'])
+w.writerow(['barcode',f'{sample1}_count',f'{sample1}_count',f'log2FC({sample1}/{sample2})',f'{sample1}_rank',f'{sample1}_rank'])
+for k in common_keys:
+    w.writerow([k,TF_Count1[k],TF_Count2[k],log2fc[k],rank_dict[k][0],rank_dict[k][1]])
+f.close()
