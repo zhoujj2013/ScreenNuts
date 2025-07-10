@@ -1,12 +1,16 @@
-# 🧬 Abstract
+# Introduction
+
+
 
 ---
-# 💻 Installation
+# Requirements
 
 Requires Python ≥ 3.8 and the following libraries:
 ```bash
+# create a new conda enviroment
 pip install numpy scipy matplotlib pandas seaborn biopython
 ```
+
 ---
 # ⚙️ Functional
 
