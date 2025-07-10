@@ -11,17 +11,40 @@ import seaborn as sns
 parser = argparse.ArgumentParser()
 # 添加参数
 parser.add_argument('-i', type=str, required=True,help='sample file',)
+parser.add_argument('-b',type=str,help='barcode list,csv file,example /mnt/dfc_data2/project/linyusen/project/81_MORF/barcode_info.csv',required=True)
 parser.add_argument('-o', type=str, required=True,help='Output directory to save plots and results')
 
 args = parser.parse_args()
 
 input = args.i
 output_dir = args.o
+barcode_file = args.b
 os.makedirs(output_dir,exist_ok=True)
 # input = '/mnt/dfc_data2/project/linyusen/project/81_MORF/samples.lst'
 # output_dir = '/mnt/dfc_data2/project/linyusen/project/81_MORF/data/compare'
 
+
+
 print('Precessing ... ')
+barcode_dict = {}
+with open(barcode_file, 'r') as infile:
+    reader = csv.reader(infile)
+    reader.__next__()
+    for rows in reader:
+        barcode_dict[rows[3]] = 0
+
+barcode_tf_dict = {}
+with open(barcode_file, 'r') as infile:
+    reader = csv.reader(infile)
+    reader.__next__()
+    for rows in reader:
+        barcode_tf_dict[rows[3]] = {}
+        barcode_tf_dict[rows[3]]['Name'] = rows[0]
+        barcode_tf_dict[rows[3]]['RefSeqGeneName'] = rows[1]
+        barcode_tf_dict[rows[3]]['RefSeqandGencodeID'] = rows[2]
+        barcode_tf_dict[rows[3]]['BarcodeSequence'] = rows[3]
+
+
 f = open(input)
 input_dir1_list = []
 input_dir2_list = []
@@ -210,10 +233,13 @@ plt.xticks(rotation=15)
 plt.tight_layout()
 plt.savefig(os.path.join(output_dir,'Dropout_TF_Count.png'))
 
-f = open(os.path.join(output_dir,'compare.info.csv'),'w')
-w = csv.writer(f)
-w.writerow(['barcode',f'{sample1}_count',f'{sample1}_count',f'log2FC({sample1}/{sample2})',f'{sample1}_rank',f'{sample1}_rank'])
-for k in common_keys:
-    w.writerow([k,TF_Count1[k],TF_Count2[k],log2fc[k],rank_dict[k][0],rank_dict[k][1]])
+
+f = open(os.path.join(output_dir,'compare.info.txt'),'w')
+w = csv.writer(f,delimiter='\t')
+w.writerow(['Barcode','Name','RefSeqGeneName','RefSeqandGencodeID',f'{sample1}_count',f'{sample1}_count',f'log2FC({sample1}/{sample2})',f'{sample1}_rank',f'{sample1}_rank'])
+for barcode in barcode_tf_dict:
+    if barcode not in common_keys:
+        continue
+    w.writerow([barcode,barcode_tf_dict[barcode]['Name'],barcode_tf_dict[barcode]['RefSeqGeneName'],barcode_tf_dict[barcode]['RefSeqandGencodeID'],TF_Count1[barcode],TF_Count2[barcode],log2fc[barcode],rank_dict[barcode][0],rank_dict[barcode][1]])
 f.close()
 print('Done!')
