@@ -56,8 +56,10 @@ with open(input_file, 'r') as infile:
     reader.__next__()
     for rows in reader:
         barcode_tf_dict[rows[3]] = {}
-        barcode_tf_dict[rows[3]]['tf_name'] = rows[0]
-        barcode_tf_dict[rows[3]]['Gene_name'] = rows[1]
+        barcode_tf_dict[rows[3]]['Name'] = rows[0]
+        barcode_tf_dict[rows[3]]['RefSeqGeneName'] = rows[1]
+        barcode_tf_dict[rows[3]]['RefSeqandGencodeID'] = rows[2]
+        barcode_tf_dict[rows[3]]['BarcodeSequence'] = rows[3]
 #%%
 
 def process_chunk(records_chunk):
@@ -164,16 +166,19 @@ for i in barcode_dict:
     barcode_count_list.append(barcode_dict[i])
 skewness = np.percentile(barcode_count_list, 90) / np.percentile(barcode_count_list, 10)
 #%%
-with open(os.path.join(output_dir,'TF_Count.csv'), 'w') as csvfile:
-    mywriter = csv.writer(csvfile, delimiter=',')
-    # mywriter.writerow([f'#skewness:{skewness}'])
-    mywriter.writerow(['barcode', 'tf','count','CPM'])
+with open(os.path.join(output_dir,'TF_Count.txt'), 'w') as csvfile:
+    mywriter = csv.writer(csvfile, delimiter='\t')
+    mywriter.writerow(['Barcode','Name','RefSeqGeneName','RefSeqandGencodeID',f'{prefix}_count',f'{prefix}_CPM'])
     for barcode in barcode_dict:
         count = sorted_data[barcode]
-        mywriter.writerow([barcode,barcode_tf_dict[barcode]['tf_name'],count,count/total_count*1000000])
+        mywriter.writerow([barcode,barcode_tf_dict[barcode]['Name'],barcode_tf_dict[barcode]['RefSeqGeneName'],barcode_tf_dict[barcode]['RefSeqandGencodeID'],count,count/total_count*1000000])
 
-with open(os.path.join(output_dir,'TF_info.csv'), 'w') as csvfile:
-    mywriter = csv.writer(csvfile, delimiter=',')
+
+with open(os.path.join(output_dir,'readcount_stat_header.txt'), 'w') as csvfile:
+    mywriter = csv.writer(csvfile, delimiter='\t')
     mywriter.writerow(['sample','total', 'barcode count','nonperfect','notfound','skewness'])
+
+with open(os.path.join(output_dir,'readcount_stat.txt'), 'w') as csvfile:
+    mywriter = csv.writer(csvfile, delimiter='\t')
     mywriter.writerow([prefix,total_count, total_stats['perfect'],total_stats['nonperfect'],total_stats['notfound'],skewness])
 print('Done!')
