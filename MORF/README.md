@@ -101,7 +101,7 @@ If you use this script or parts of it in your research or project, please cite t
 
 # Contributors
 
-Jiajian ZHOU, Yusen Lin, Tingting Deng and Meting.
+Yusen Lin, Jiajian Zhou, Jingxia Lin and Meiting Cai.
 
 
 # License
